@@ -9,15 +9,16 @@ user_agent = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)'
 # Some sites blocks robots, to avoid this, we pretend as a broswer
 headers = { 'User-Agent' : user_agent }
 #
-max_number_of_urls_to_visit = 200
+max_number_of_urls_to_visit = 7000
 # Only those URLs that match any of this regexps will be visited
-netlocs_of_interest = ('en\\.wikipedia\\.org.*',)
+netlocs_of_interest = ('en\\.wikipedia\\.org',)
+paths_of_interest = ("[^:]*",)
 # List MIME types of crawled documents
 text_mime_types = ('text',)
 
 ##### Words #####
 # Size of collected dictionary
-num_of_words_to_return = 10000
+num_of_words_to_return = 50000
 # Symbols that should be striped from the beginning and end of each word, found in a document. This helps to
 # recognize words as '(programming', 'Python,' etc.
 symbols_to_strip = " '.,;[](){}-_1234567890:!\|/&#$%=\""

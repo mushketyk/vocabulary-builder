@@ -11,13 +11,24 @@ from BeautifulSoup import BeautifulSoup
 from urlparse import urlparse
 
 compiled_netloc_regexps = []
+compiled_path_regexps = []
 
 def crawl_netlock(net_lock):
     global compiled_netloc_regexps
     for regexp in compiled_netloc_regexps:
-        if regexp.match(net_lock):
+        match = regexp.match(net_lock)
+        if match and len(match.group()) == len(net_lock):
             return True
     return False
+
+def crawl_path(path):
+    global compiled_path_regexps
+    for regexp in compiled_path_regexps:
+        match = regexp.match(path)
+        if match and len(match.group()) == len(path):
+            return True
+    return False
+    
 
 def create_readable_links(scheme, netloc, links):
     readable_links = []
@@ -35,7 +46,7 @@ def create_readable_links(scheme, netloc, links):
         if parse_result.netloc:
             link_netloc = parse_result.netloc
 
-        if crawl_netlock(link_netloc):
+        if crawl_netlock(link_netloc) and crawl_path(link_path):
             result_link = link_scheme + "://" + link_netloc + link_path
             readable_links.append(result_link)
 
@@ -54,10 +65,14 @@ def enumerate_words(html, words):
             word = word.strip(config.symbols_to_strip)
             if word:
                 word = word.lower()
-                word = stem(word)
-                if word.isalpha():
-                    words[word] = words.get(word, 0) + 1
 
+                try:                
+                    word = stem(word)
+                    if word.isalpha():
+                        words[word] = words.get(word, 0) + 1
+                except IndexError as inst:
+                    logging.error("Possibly bug in stem function for word: " + word + "\n" + str(inst))
+                
 def configure_logger():
     if config.log_filename is None:
         logging.basicConfig(level=config.log_level)
@@ -68,13 +83,17 @@ def compile_netloc_regexps():
     global compiled_netloc_regexps
     compiled_netloc_regexps = map(lambda reg_exp: re.compile(reg_exp), config.netlocs_of_interest)
 
+def compile_path_regexps():
+    global compiled_path_regexps
+    compiled_path_regexps = map(lambda reg_exp: re.compile(reg_exp), config.paths_of_interest)
+
 def get_linked_urls(url):
     soup = BeautifulSoup(html)
     a_tags = soup.findAll('a')
 
     links = set()
     for tag in a_tags:
-        if 'href' in tag.attrs[0]:
+        if len(tag.attrs) and 'href' in tag.attrs[0]:
             links.add(tag['href'])
 
     return links
@@ -106,6 +125,7 @@ if __name__ == "__main__":
 
     configure_logger()
     compile_netloc_regexps()
+    compile_path_regexps()
     logging.info("Vocabulary builder started")
 
     visited_urls = set()
@@ -138,6 +158,8 @@ if __name__ == "__main__":
                 logging.info("HTTP error during reading" + url + ": " + str(inst))
             except urllib2.URLError as inst:
                 logging.info("HTTP error during reading" + url + ": " + str(inst))
+            except UnicodeError as inst:
+                logging.error("Unicode error during reading " + url)
 
     words = get_most_used_words(found_words)
 
