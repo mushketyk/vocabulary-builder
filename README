@@ -1,0 +1,9 @@
+vocabulary-builder is a simple script that collects words that occur the most frequently on a set of a crawled web-pages.
+
+It works as follows: start on a set of web-pages, strips HTML tags, count occurrence of each word on a page, collect all links from the page, repeat the same process for all pages that had links from the first page.
+
+This script can be helpful for collecting set of words that can be used later as inputs for neural networks.
+
+Used libraries:
+* stemming 1.0 - for word stemming
+* BeautifulSoup - for HTML parsing

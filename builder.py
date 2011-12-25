@@ -109,7 +109,8 @@ if __name__ == "__main__":
     logging.info("Vocabulary builder started")
 
     visited_urls = set()
-    urls_to_visit = [config.start_url]
+    urls_to_visit = []
+    urls_to_visit.extend(config.start_urls)
     num_of_visited_urls = 0
     found_words = dict()
 
