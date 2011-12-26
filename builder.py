@@ -5,6 +5,7 @@ import logging
 import config
 import re
 import codecs
+import threading
 
 from stemming.porter2 import stem
 from BeautifulSoup import BeautifulSoup
@@ -12,6 +13,8 @@ from urlparse import urlparse
 
 compiled_netloc_regexps = []
 compiled_path_regexps = []
+
+
 
 def crawl_netlock(net_lock):
     global compiled_netloc_regexps
@@ -87,7 +90,7 @@ def compile_path_regexps():
     global compiled_path_regexps
     compiled_path_regexps = map(lambda reg_exp: re.compile(reg_exp), config.paths_of_interest)
 
-def get_linked_urls(url):
+def get_linked_urls(html):
     soup = BeautifulSoup(html)
     a_tags = soup.findAll('a')
 
@@ -110,56 +113,79 @@ def write_dictionary(words):
     f = codecs.open(config.dictionary_output_file, encoding='utf-8', mode='w+')
 
     for word in words:
-        f.write(word + "\n")
+        f.write(word + "\n" + config.line_end)
 
 def write_dictionary_with_usage(words, found_words):
     f = codecs.open(config.dictionary_with_usage_file, encoding='utf-8', mode='w+')
 
     for word in words:
-        f.write(word + " " + str(found_words[word]) + "\n")
+        f.write(word + " " + str(found_words[word]) + config.line_end)
 
 def show_progress(num_of_visited_urls):
     print "Visiting URL: " + str(num_of_visited_urls) + "/" + str(config.max_number_of_urls_to_visit)
 
-if __name__ == "__main__":
+visited_urls = set()
+urls_to_visit = []
 
+found_words = dict()
+num_lock = threading.Lock()
+num_of_visited_urls = 0
+
+class CrawlThread(threading.Thread):
+    def run(self):
+        global num_of_visited_urls
+        global found_words
+        global num_lock
+        global visited_urls
+        global urls_to_visit
+
+        while len(urls_to_visit) > 0 and len(visited_urls) < config.max_number_of_urls_to_visit:
+            url = urls_to_visit.pop(0)
+            if url not in visited_urls:
+                logging.info("Visited: " + url)
+
+                try:
+                    html = get_html(url)
+                    if html:
+                        show_progress(num_of_visited_urls)
+                        links = get_linked_urls(html)
+
+                        parse_result = urlparse(url)
+                        new_links = create_readable_links(parse_result.scheme, parse_result.netloc, links)
+                        urls_to_visit.extend(new_links)
+                        visited_urls.add(url)
+
+                        enumerate_words(html, found_words)
+
+                        num_lock.acquire()
+                        num_of_visited_urls += 1
+                        num_lock.release()
+                except urllib2.HTTPError as inst:
+                    logging.info("HTTP error during reading" + url + ": " + str(inst))
+                except urllib2.URLError as inst:
+                    logging.info("HTTP error during reading" + url + ": " + str(inst))
+                except UnicodeError as inst:
+                    logging.error("Unicode error during reading " + url)
+
+
+if __name__ == "__main__":
     configure_logger()
     compile_netloc_regexps()
     compile_path_regexps()
     logging.info("Vocabulary builder started")
 
-    visited_urls = set()
-    urls_to_visit = []
     urls_to_visit.extend(config.start_urls)
-    num_of_visited_urls = 0
-    found_words = dict()
 
-    while len(urls_to_visit) > 0 and len(visited_urls) < config.max_number_of_urls_to_visit:
+    threads = set()
 
-        url = urls_to_visit.pop()
-        if url not in visited_urls:
-            logging.info("Visited: " + url)
+    for i in range(config.number_of_threads):
+        crawl_thread = CrawlThread()
+        crawl_thread.setDaemon(True)
+        crawl_thread.start()
+        threads.add(crawl_thread)
 
-            try:
-                html = get_html(url)
-                if html:
-                    show_progress(num_of_visited_urls)
-                    links = get_linked_urls(html)
-
-                    parse_result = urlparse(url)
-                    new_links = create_readable_links(parse_result.scheme, parse_result.netloc, links)
-                    urls_to_visit.extend(new_links)
-                    visited_urls.add(url)
-
-                    enumerate_words(html, found_words)
-
-                    num_of_visited_urls += 1
-            except urllib2.HTTPError as inst:
-                logging.info("HTTP error during reading" + url + ": " + str(inst))
-            except urllib2.URLError as inst:
-                logging.info("HTTP error during reading" + url + ": " + str(inst))
-            except UnicodeError as inst:
-                logging.error("Unicode error during reading " + url)
+    for thread in threads:
+        thread.join()
 
     words = get_most_used_words(found_words)
 

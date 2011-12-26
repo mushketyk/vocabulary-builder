@@ -9,12 +9,14 @@ user_agent = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)'
 # Some sites blocks robots, to avoid this, we pretend as a broswer
 headers = { 'User-Agent' : user_agent }
 #
-max_number_of_urls_to_visit = 7000
+max_number_of_urls_to_visit = 70
 # Only those URLs that match any of this regexps will be visited
 netlocs_of_interest = ('en\\.wikipedia\\.org',)
 paths_of_interest = ("[^:]*",)
 # List MIME types of crawled documents
 text_mime_types = ('text',)
+# Number of crawler's threads to run
+number_of_threads = 4
 
 ##### Words #####
 # Size of collected dictionary
@@ -28,6 +30,8 @@ symbols_to_strip = " '.,;[](){}-_1234567890:!\|/&#$%=\""
 dictionary_output_file = "dictionary"
 # The same as a previous one, but also output number of occurrence of words
 dictionary_with_usage_file = "ext_dictionary"
+# End of a line in a dictionary
+line_end = "\n"
 
 ##### Logger #####
 # Level of logging
