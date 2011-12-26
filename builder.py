@@ -141,13 +141,18 @@ class CrawlThread(threading.Thread):
 
         while len(urls_to_visit) > 0 and len(visited_urls) < config.max_number_of_urls_to_visit:
             url = urls_to_visit.pop(0)
+            num_lock.acquire()
+            num_of_visited_urls += 1
+            thread_url_number = num_of_visited_urls
+            num_lock.release()
+
             if url not in visited_urls:
                 logging.info("Visited: " + url)
 
                 try:
                     html = get_html(url)
                     if html:
-                        show_progress(num_of_visited_urls)
+                        show_progress(thread_url_number)
                         links = get_linked_urls(html)
 
                         parse_result = urlparse(url)
@@ -157,9 +162,6 @@ class CrawlThread(threading.Thread):
 
                         enumerate_words(html, found_words)
 
-                        num_lock.acquire()
-                        num_of_visited_urls += 1
-                        num_lock.release()
                 except urllib2.HTTPError as inst:
                     logging.info("HTTP error during reading" + url + ": " + str(inst))
                 except urllib2.URLError as inst:
