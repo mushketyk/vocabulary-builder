@@ -110,13 +110,13 @@ def get_html(url):
         return response.read()
 
 def write_dictionary(words):
-    f = codecs.open(config.dictionary_output_file, encoding='utf-8', mode='w+')
+    f = codecs.open(config.dictionary_output_file, encoding='utf-8', mode='w')
 
     for word in words:
-        f.write(word + "\n" + config.line_end)
+        f.write(word + config.line_end)
 
 def write_dictionary_with_usage(words, found_words):
-    f = codecs.open(config.dictionary_with_usage_file, encoding='utf-8', mode='w+')
+    f = codecs.open(config.dictionary_with_usage_file, encoding='utf-8', mode='w')
 
     for word in words:
         f.write(word + " " + str(found_words[word]) + config.line_end)
