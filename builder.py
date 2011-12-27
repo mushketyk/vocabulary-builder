@@ -121,8 +121,8 @@ def write_dictionary_with_usage(words, found_words):
     for word in words:
         f.write(word + " " + str(found_words[word]) + config.line_end)
 
-def show_progress(num_of_visited_urls):
-    print "Visiting URL: " + str(num_of_visited_urls) + "/" + str(config.max_number_of_urls_to_visit)
+def show_progress(num_of_visited_urls, number_of_parsed_urls):
+    print "Parsed: %s / %s; Visited: %s" % (str(number_of_parsed_urls), str(config.max_number_of_urls_to_visit), str(num_of_visited_urls))
 
 visited_urls = set()
 urls_to_visit = []
@@ -152,7 +152,7 @@ class CrawlThread(threading.Thread):
                 try:
                     html = get_html(url)
                     if html:
-                        show_progress(thread_url_number)
+                        show_progress(thread_url_number, len(visited_urls))
                         links = get_linked_urls(html)
 
                         parse_result = urlparse(url)
@@ -188,6 +188,8 @@ if __name__ == "__main__":
 
     for thread in threads:
         thread.join()
+
+    show_progress(num_of_visited_urls, len(visited_urls))
 
     words = get_most_used_words(found_words)
 
